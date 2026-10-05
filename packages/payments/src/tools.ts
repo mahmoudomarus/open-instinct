@@ -42,6 +42,8 @@ export interface PaymentRecord {
   conversationKey: string;
   cardDelivered: boolean;
   deliveredAt?: string;
+  /** Set once the request's hold on the daily total was released (denied, expired, failed). */
+  released?: boolean;
 }
 
 export interface PaymentsState {
@@ -105,8 +107,8 @@ function requestTool(deps: PaymentsToolDeps): RegisteredTool {
     meta: {
       capabilities: ["purchase"],
       group: "apps",
-      // The spend is recorded once, by payment_status, when Link hands over the card.
-      recordsOwnSpend: true,
+      // No recordsOwnSpend: the runtime's spend entry for this call is the hold that keeps
+      // pending requests inside the daily limit. payment_status releases it if Link says no.
       amountUsd: (a) => argNumber(a, "amountUsd"),
       describe: (a) => `pay ${argText(a, "merchantName") || "a merchant"} ${fmtUsdMaybe(argNumber(a, "amountUsd"))}`.trim(),
     },
@@ -212,13 +214,28 @@ function statusTool(deps: PaymentsToolDeps): RegisteredTool {
         record.cardDelivered = true;
         record.deliveredAt = now.toISOString();
         upsertRecord(deps.state, record);
+        // A record of the delivery, not a second amount: the request was counted when it was made.
         audit.append({
           kind: "spend",
           conversationKey: ctx.conversationKey,
           principal: ctx.principal.id,
-          detail: { spendRequestId, amountUsd: record.amountUsd, merchantName: record.merchantName, currency: request.currency ?? "usd", via: "link_agent_wallet" },
+          detail: { spendRequestId, deliveredUsd: record.amountUsd, merchantName: record.merchantName, currency: request.currency ?? "usd", via: "link_agent_wallet" },
         });
         return cardResult(record, request.card, request);
+      }
+
+      if (RELEASED_STATUSES.has(request.status) && !record.cardDelivered && !record.released) {
+        record.released = true;
+        // The hold only sits in the daily total of the day the request was made.
+        const tz = deps.config.owner.timezone;
+        if (localDay(new Date(record.createdAt), tz) === localDay(now, tz)) {
+          audit.append({
+            kind: "spend",
+            conversationKey: ctx.conversationKey,
+            principal: ctx.principal.id,
+            detail: { spendRequestId, amountUsd: -record.amountUsd, merchantName: record.merchantName, released: request.status, via: "link_agent_wallet" },
+          });
+        }
       }
 
       upsertRecord(deps.state, record);
@@ -351,6 +368,17 @@ function describeStatus(request: SpendRequest, record: PaymentRecord): string {
     }
     default:
       return base;
+  }
+}
+
+/** Link outcomes in which no money moves, so the request's hold on the daily total is given back. */
+const RELEASED_STATUSES = new Set(["denied", "expired", "canceled", "failed"]);
+
+function localDay(d: Date, tz: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+  } catch {
+    return d.toISOString().slice(0, 10);
   }
 }
 

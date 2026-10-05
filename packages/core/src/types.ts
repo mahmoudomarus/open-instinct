@@ -275,9 +275,9 @@ export interface ToolMeta {
   /** Extract a USD amount from the args for spend checks, if applicable. */
   amountUsd?: (args: unknown) => number | undefined;
   /**
-   * The tool writes its own "spend" audit entries when money actually moves (a card
-   * issued, a booking confirmed). The runtime then skips its generic spend entry, which
-   * would otherwise count a request at call time and again when it completes.
+   * The tool writes any "spend" audit entries itself, so the runtime skips its generic one.
+   * Set it on tools that carry the purchase capability but move no money on their own call
+   * (status checks, listings), which would otherwise log empty spend entries.
    */
   recordsOwnSpend?: boolean;
   /** Short human description for the audit log. */

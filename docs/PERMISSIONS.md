@@ -101,7 +101,7 @@ The `payment_*` tools from `@open-instinct/payments` sit under the same table.
 The Link approval screen is a second check on top of this one. The owner sees the exact amount and
 merchant in Link before any card exists. The spend policy matches merchants on arguments named
 `merchant`, `merchantName`, `vendor`, `store` and the like, so the allowed and blocked merchant lists
-apply to `payment_request`. A purchase counts toward the daily total once, when the card is delivered. See
+apply to `payment_request`. A purchase counts toward the daily total once, when it is requested, and is given back if Link denies or expires it. See
 [packages/payments/README.md](../packages/payments/README.md).
 
 ## Who is the owner
