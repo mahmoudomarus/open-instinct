@@ -126,7 +126,9 @@ Lower-level pieces are exported too: `buildAuthorizeUrl`, `challengeS256`, `gene
 
 ### Tools
 
-Every tool has `meta: { capabilities: ["purchase"], group: "apps" }`. The policy engine in core
+Every tool has `meta: { capabilities: ["purchase"], group: "apps", recordsOwnSpend: true }`.
+`recordsOwnSpend` stops the runtime logging a spend at request time; `payment_status`
+logs the single real spend when the card is delivered. The policy engine in core
 gives the owner `limit` on `purchase` (per-action, per-day and ask-above thresholds), `ask` to
 partners, and `no` to everyone else unless a grant says otherwise.
 

@@ -66,7 +66,7 @@ function connectTool(deps: PaymentsToolDeps): RegisteredTool {
       "Start connecting the owner's Stripe Link wallet so the agent can request one-time cards. Sends the owner a sign-in link by iMessage. Owner only.",
     parameters: Type.Object({}),
     // Connecting spends nothing; the amount keeps the owner's spend check from asking for one.
-    meta: { capabilities: ["purchase"], group: "apps", amountUsd: () => 0, describe: () => "connect Link wallet" },
+    meta: { capabilities: ["purchase"], group: "apps", recordsOwnSpend: true, amountUsd: () => 0, describe: () => "connect Link wallet" },
     execute: async (_args, ctx) => {
       if (!isOwner(ctx.principal)) return errorResult("Only the owner can connect a wallet. Offer to tell the owner instead.");
       const already = wallet.isConnected();
@@ -105,6 +105,8 @@ function requestTool(deps: PaymentsToolDeps): RegisteredTool {
     meta: {
       capabilities: ["purchase"],
       group: "apps",
+      // The spend is recorded once, by payment_status, when Link hands over the card.
+      recordsOwnSpend: true,
       amountUsd: (a) => argNumber(a, "amountUsd"),
       describe: (a) => `pay ${argText(a, "merchantName") || "a merchant"} ${fmtUsdMaybe(argNumber(a, "amountUsd"))}`.trim(),
     },
@@ -187,7 +189,7 @@ function statusTool(deps: PaymentsToolDeps): RegisteredTool {
       "Check a spend request made with payment_request. When the owner has approved it, this returns the one-time card details a single time so you can type them into the checkout. Other statuses return a short status line.",
     parameters: Type.Object({ spendRequestId: Type.String() }),
     // The amount was checked when the request was created; picking up the card adds no new spend.
-    meta: { capabilities: ["purchase"], group: "apps", amountUsd: () => 0, describe: (a) => `payment status ${argText(a, "spendRequestId")}` },
+    meta: { capabilities: ["purchase"], group: "apps", recordsOwnSpend: true, amountUsd: () => 0, describe: (a) => `payment status ${argText(a, "spendRequestId")}` },
     execute: async ({ spendRequestId }, ctx) => {
       const record = findRecord(deps.state, spendRequestId);
       if (!record) return errorResult(`Unknown spend request ${spendRequestId}. Only requests made with payment_request can be checked.`);
@@ -235,7 +237,7 @@ function listTool(deps: PaymentsToolDeps): RegisteredTool {
     label: "List payment requests",
     description: "Recent spend requests made through the Link wallet, newest first, without card data. Owner only.",
     parameters: Type.Object({}),
-    meta: { capabilities: ["purchase"], group: "apps", amountUsd: () => 0, describe: () => "list payment requests" },
+    meta: { capabilities: ["purchase"], group: "apps", recordsOwnSpend: true, amountUsd: () => 0, describe: () => "list payment requests" },
     execute: async (_args, ctx) => {
       if (!isOwner(ctx.principal)) return errorResult("Only the owner can list payments.");
       const rows = readPayments(deps.state).requests.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, LIST_LIMIT);

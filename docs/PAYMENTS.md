@@ -203,11 +203,13 @@ always asks the owner, whatever the policy says.
 the spend check never asks for them. `payment_request` reports `amountUsd`, so every
 limit applies to it.
 
-One gap to know about. Core's spend policy matches merchants on arguments named
-`merchant`, `vendor`, `store`, `restaurant`, `airline` and `hotel`. The payment tool's
-argument is `merchantName`. The `allowedMerchants` and `blockedMerchants` lists do not
-match it yet. The `neverWithoutAsk` words still match, because they are searched in the
-whole argument text.
+Core's spend policy reads the merchant from `merchantName` as well as `merchant`,
+`vendor`, `store`, `restaurant`, `airline` and `hotel`, so `allowedMerchants` and
+`blockedMerchants` apply to `payment_request`.
+
+The daily total counts a purchase once, when `payment_status` hands over the card. The
+payment tools set `meta.recordsOwnSpend`, so the runtime does not also log a spend when
+`payment_request` runs. A request that is denied or expires in Link never counts.
 
 ## What is not supported
 

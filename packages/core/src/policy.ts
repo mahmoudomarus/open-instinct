@@ -119,7 +119,7 @@ function textOf(args: unknown): string {
 function merchantOf(args: unknown): string | undefined {
   if (!args || typeof args !== "object") return undefined;
   const o = args as Record<string, unknown>;
-  for (const k of ["merchant", "vendor", "store", "restaurant", "airline", "hotel"]) {
+  for (const k of ["merchant", "merchantName", "merchant_name", "vendor", "store", "restaurant", "airline", "hotel"]) {
     const v = o[k];
     if (typeof v === "string" && v.trim()) return v.trim().toLowerCase();
   }

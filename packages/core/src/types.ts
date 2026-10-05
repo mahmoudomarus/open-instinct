@@ -274,6 +274,12 @@ export interface ToolMeta {
   group: "messaging" | "owner" | "memory" | "contacts" | "network" | "schedule" | "files" | "computer" | "apps" | "web" | "system";
   /** Extract a USD amount from the args for spend checks, if applicable. */
   amountUsd?: (args: unknown) => number | undefined;
+  /**
+   * The tool writes its own "spend" audit entries when money actually moves (a card
+   * issued, a booking confirmed). The runtime then skips its generic spend entry, which
+   * would otherwise count a request at call time and again when it completes.
+   */
+  recordsOwnSpend?: boolean;
   /** Short human description for the audit log. */
   describe?: (args: unknown) => string;
 }

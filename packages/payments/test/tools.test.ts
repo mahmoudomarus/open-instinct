@@ -118,6 +118,8 @@ describe("paymentsTools registry", () => {
     for (const name of ["payment_connect", "payment_status", "payment_list"]) {
       expect(byName.get(name)!.spec.meta.amountUsd?.({})).toBe(0);
     }
+    // payment_status records the one real spend; the runtime must not add its own entries.
+    for (const t of byName.values()) expect(t.spec.meta.recordsOwnSpend, t.spec.name).toBe(true);
   });
 });
 
